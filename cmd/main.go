@@ -11,8 +11,12 @@ func main() {
 
 	//... Push elements ..//
 	stack.Push(22)
-	
+	stack.Push(54)
+	stack.Push(26)
+
 	fmt.Println("Popped:", stack.Pop())
 
-	
+	fmt.Println("Popped:", stack.Pop())
+	fmt.Println("Popped:", stack.Pop())
+
 }
