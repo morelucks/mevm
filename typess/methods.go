@@ -3,11 +3,16 @@ package types
 import (
 	// "fmt"
 )
-
+//..... stack contructor ...//
 func NewStack() *Stack {
 	return &Stack{
 		Data: make([]byte, 0),
 	}
+}
+
+//..... memory contructor ...//
+func NewMemory() *Memory {
+	return &Memory{make([]Byte32, 0)}
 }
 
 //.... push method ...//
