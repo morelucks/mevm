@@ -14,3 +14,7 @@ type Stack struct {
 type Memory struct {
 	Data []Byte32
 }
+
+type Storage struct {
+	Data map[Byte32]Byte32
+}
