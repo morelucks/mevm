@@ -20,6 +20,61 @@ func NewStorage() *Storage {
 	return &Storage{make(map[Byte32]Byte32, 0)}
 }
 
+func NewVM(code []byte) *VM {
+	// Keep an internal copy of code to avoid external mutation
+	internal := make([]byte, len(code))
+	copy(internal, code)
+	return &VM{
+		Code: internal,
+		PC:   0,
+	}
+}
+
+// Program Counter (PC) helpers
+func (vm *VM) CodeSize() uint64 {
+	return uint64(len(vm.Code))
+}
+
+func (vm *VM) HasMore() bool {
+	return vm.PC < uint64(len(vm.Code))
+}
+
+func (vm *VM) GetPC() uint64 {
+	return vm.PC
+}
+
+func (vm *VM) SetPC(pc uint64) {
+	if pc > uint64(len(vm.Code)) {
+		panic("pc out of bounds")
+	}
+	vm.PC = pc
+}
+
+func (vm *VM) IncPC(delta uint64) {
+	newPC := vm.PC + delta
+	if newPC > uint64(len(vm.Code)) {
+		panic("pc out of bounds")
+	}
+	vm.PC = newPC
+}
+
+func (vm *VM) Fetch() byte {
+	if vm.PC >= uint64(len(vm.Code)) {
+		panic("pc out of bounds")
+	}
+	b := vm.Code[vm.PC]
+	vm.PC++
+	return b
+}
+
+func (vm *VM) PeekByte(offset uint64) byte {
+	index := vm.PC + offset
+	if index >= uint64(len(vm.Code)) {
+		panic("pc out of bounds")
+	}
+	return vm.Code[index]
+}
+
 // Helper function to convert Word to big.Int
 func (w Word) ToBigInt() *big.Int {
 	return new(big.Int).SetBytes(w[:])

@@ -23,6 +23,12 @@ type Storage struct {
 	Data map[Byte32]Byte32
 }
 
+// VM holds code and the program counter (PC)
+type VM struct {
+	Code []byte
+	PC   uint64
+}
+
 // EVM Opcodes
 const (
 	// Stack operations

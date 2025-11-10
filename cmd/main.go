@@ -7,7 +7,34 @@ import (
 )
 
 func main() {
-	fmt.Println("=== MiniEVM - Milestone 1: Core Arithmetic & Stack Operations ===\n")
+	fmt.Println(" MiniEVM ")
+	fmt.Println()
+
+	//  Program Counter (PC)
+
+	code := []byte{types.PUSH1, 0x2a, types.STOP}
+	vm := types.NewVM(code)
+	fmt.Println("PC Demo:")
+	fmt.Printf("  Code size: %d bytes\n", vm.CodeSize())
+	fmt.Printf("  PC start: %d\n", vm.GetPC())
+	op := vm.Fetch()
+	fmt.Printf("  Fetched opcode: 0x%x, PC now: %d\n", op, vm.GetPC())
+	if op >= types.PUSH1 && op <= types.PUSH32 && vm.HasMore() {
+		// For PUSH1, read one immediate byte
+		immediate := vm.Fetch()
+		fmt.Printf("  PUSH immediate: 0x%x, PC now: %d\n", immediate, vm.GetPC())
+	}
+	// Peek next (should be STOP) without advancing
+	if vm.HasMore() {
+		next := vm.PeekByte(0)
+		fmt.Printf("  Peek next opcode (no advance): 0x%x, PC still: %d\n", next, vm.GetPC())
+	}
+	// Advance to STOP and fetch it
+	if vm.HasMore() {
+		stop := vm.Fetch()
+		fmt.Printf("  Fetched opcode: 0x%x (STOP), PC now: %d\n", stop, vm.GetPC())
+	}
+	fmt.Println()
 
 	// Create a new stack
 	stack := types.NewStack()
@@ -176,8 +203,4 @@ func main() {
 	stack.Push(types.NewWord(5))
 	stack.MulMod()
 	stack.Print()
-
-	fmt.Println("\n=== Milestone 1 Complete! ===")
-	fmt.Println("You've successfully implemented core EVM arithmetic and stack operations!")
-	fmt.Println("Next: Add gas system and execution limits (Milestone 2)")
 }
