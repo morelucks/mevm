@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 const (
 	MaximumDepth uint = 1024
 	WordSize     int  = 32 // 256 bits = 32 bytes
@@ -23,10 +25,12 @@ type Storage struct {
 	Data map[Byte32]Byte32
 }
 
-// VM holds code and the program counter (PC)
+// VM holds code, program counter (PC), and gas tracking
 type VM struct {
-	Code []byte
-	PC   uint64
+	Code     []byte
+	PC       uint64
+	Gas      uint64 // Remaining gas
+	GasLimit uint64 // Maximum gas allowed
 }
 
 // EVM Opcodes
@@ -134,3 +138,44 @@ const (
 	SWAP15 = 0x9e
 	SWAP16 = 0x9f
 )
+
+// Gas cost constants (Istanbul fork - pre-Berlin)
+const (
+	GasZero         uint64 = 0
+	GasBase         uint64 = 2
+	GasVeryLow      uint64 = 3
+	GasLow          uint64 = 5
+	GasMid          uint64 = 8
+	GasHigh         uint64 = 10
+	GasExtStep      uint64 = 20
+	GasExtCode      uint64 = 700
+	GasBalance      uint64 = 400
+	GasSLoad        uint64 = 200
+	GasSStore       uint64 = 20000
+	GasSStoreReset  uint64 = 5000
+	GasSStoreNoop   uint64 = 200
+	GasCall         uint64 = 700
+	GasCreate       uint64 = 32000
+	GasMemory       uint64 = 3 // Per word (32 bytes)
+	GasLog          uint64 = 375
+	GasLogTopic     uint64 = 375
+	GasLogData      uint64 = 8
+	GasExp          uint64 = 10
+	GasExpByte      uint64 = 50
+	GasSHA3         uint64 = 30
+	GasSHA3Word     uint64 = 6
+	GasCopy         uint64 = 3
+	GasCopyWord     uint64 = 3
+	GasJumpDest     uint64 = 1
+	GasSelfDestruct uint64 = 5000
+)
+
+// OutOfGasError represents when execution runs out of gas
+type OutOfGasError struct {
+	Required  uint64
+	Remaining uint64
+}
+
+func (e *OutOfGasError) Error() string {
+	return fmt.Sprintf("out of gas: required %d, remaining %d", e.Required, e.Remaining)
+}

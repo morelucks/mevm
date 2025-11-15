@@ -20,13 +20,15 @@ func NewStorage() *Storage {
 	return &Storage{make(map[Byte32]Byte32, 0)}
 }
 
-func NewVM(code []byte) *VM {
+func NewVM(code []byte, gasLimit uint64) *VM {
 	// Keep an internal copy of code to avoid external mutation
 	internal := make([]byte, len(code))
 	copy(internal, code)
 	return &VM{
-		Code: internal,
-		PC:   0,
+		Code:     internal,
+		PC:       0,
+		Gas:      gasLimit,
+		GasLimit: gasLimit,
 	}
 }
 
@@ -73,6 +75,99 @@ func (vm *VM) PeekByte(offset uint64) byte {
 		panic("pc out of bounds")
 	}
 	return vm.Code[index]
+}
+
+// Gas management methods
+func (vm *VM) GetGas() uint64 {
+	return vm.Gas
+}
+
+func (vm *VM) GetGasLimit() uint64 {
+	return vm.GasLimit
+}
+
+func (vm *VM) ConsumeGas(amount uint64) error {
+	if vm.Gas < amount {
+		return &OutOfGasError{
+			Required:  amount,
+			Remaining: vm.Gas,
+		}
+	}
+	vm.Gas -= amount
+	return nil
+}
+
+func (vm *VM) RefundGas(amount uint64) {
+	// Gas refunds are capped at gasLimit/2 (pre-Berlin)
+	maxRefund := vm.GasLimit / 2
+	currentRefund := vm.GasLimit - vm.Gas
+	if currentRefund+amount > maxRefund {
+		vm.Gas = vm.GasLimit - maxRefund
+	} else {
+		vm.Gas += amount
+		if vm.Gas > vm.GasLimit {
+			vm.Gas = vm.GasLimit
+		}
+	}
+}
+
+// MemoryExpansionGas calculates gas cost for memory expansion
+// Formula: (newSize^2 - oldSize^2) / 512 + 3 * (newSize - oldSize)
+// where sizes are in words (32 bytes)
+func MemoryExpansionGas(oldSize, newSize uint64) uint64 {
+	if newSize <= oldSize {
+		return 0
+	}
+
+	// Convert to words (32 bytes per word)
+	oldWords := (oldSize + 31) / 32
+	newWords := (newSize + 31) / 32
+
+	if newWords <= oldWords {
+		return 0
+	}
+
+	// Quadratic cost: (newWords^2 - oldWords^2) / 512
+	quadCost := (newWords*newWords - oldWords*oldWords) / 512
+
+	// Linear cost: 3 * (newWords - oldWords)
+	linearCost := 3 * (newWords - oldWords)
+
+	return quadCost + linearCost
+}
+
+// GetOpcodeGasCost returns the base gas cost for an opcode (Istanbul fork)
+// Note: Some opcodes have dynamic costs (EXP, SHA3, memory ops, etc.)
+// that need additional calculation
+func GetOpcodeGasCost(opcode byte) uint64 {
+	switch opcode {
+	case STOP:
+		return GasZero
+	case ADD, SUB, LT, GT, SLT, SGT, EQ, AND, OR, XOR, NOT, BYTE, SHL, SHR, SAR, ISZERO:
+		return GasVeryLow
+	case MUL, DIV, SDIV, MOD, SMOD, SIGNEXTEND:
+		return GasLow
+	case ADDMOD, MULMOD:
+		return GasMid
+	case EXP:
+		return GasExp // Base cost, additional cost per byte
+	case POP:
+		return GasBase
+	case PUSH1, PUSH2, PUSH3, PUSH4, PUSH5, PUSH6, PUSH7, PUSH8,
+		PUSH9, PUSH10, PUSH11, PUSH12, PUSH13, PUSH14, PUSH15, PUSH16,
+		PUSH17, PUSH18, PUSH19, PUSH20, PUSH21, PUSH22, PUSH23, PUSH24,
+		PUSH25, PUSH26, PUSH27, PUSH28, PUSH29, PUSH30, PUSH31, PUSH32:
+		return GasVeryLow
+	case DUP1, DUP2, DUP3, DUP4, DUP5, DUP6, DUP7, DUP8,
+		DUP9, DUP10, DUP11, DUP12, DUP13, DUP14, DUP15, DUP16:
+		return GasVeryLow
+	case SWAP1, SWAP2, SWAP3, SWAP4, SWAP5, SWAP6, SWAP7, SWAP8,
+		SWAP9, SWAP10, SWAP11, SWAP12, SWAP13, SWAP14, SWAP15, SWAP16:
+		return GasVeryLow
+	default:
+		// Unknown opcode - return high cost to discourage execution
+		return GasHigh
+	}
 }
 
 // Helper function to convert Word to big.Int

@@ -10,10 +10,9 @@ func main() {
 	fmt.Println(" MiniEVM ")
 	fmt.Println()
 
-	//  Program Counter (PC)
-
+	// === Program Counter (PC) Demo ===
 	code := []byte{types.PUSH1, 0x2a, types.STOP}
-	vm := types.NewVM(code)
+	vm := types.NewVM(code, 10000) // Initialize with 10000 gas
 	fmt.Println("PC Demo:")
 	fmt.Printf("  Code size: %d bytes\n", vm.CodeSize())
 	fmt.Printf("  PC start: %d\n", vm.GetPC())
@@ -35,6 +34,104 @@ func main() {
 		fmt.Printf("  Fetched opcode: 0x%x (STOP), PC now: %d\n", stop, vm.GetPC())
 	}
 	fmt.Println()
+
+	// === Gas Model Demo ===
+	fmt.Println("=== Gas Model v1 (Pre-Berlin) Demo ===")
+	fmt.Println()
+
+	// Demo 1: Basic gas consumption
+	fmt.Println("1. Basic Gas Consumption:")
+	vm2 := types.NewVM(code, 1000)
+	fmt.Printf("  Initial gas: %d\n", vm2.GetGas())
+	fmt.Printf("  Gas limit: %d\n", vm2.GetGasLimit())
+
+	// Consume gas for PUSH1
+	gasCost := types.GetOpcodeGasCost(types.PUSH1)
+	fmt.Printf("  PUSH1 gas cost: %d\n", gasCost)
+	err := vm2.ConsumeGas(gasCost)
+	if err != nil {
+		fmt.Printf("  Error: %v\n", err)
+	} else {
+		fmt.Printf("  Gas after PUSH1: %d\n", vm2.GetGas())
+	}
+
+	// Consume gas for STOP
+	gasCost = types.GetOpcodeGasCost(types.STOP)
+	fmt.Printf("  STOP gas cost: %d\n", gasCost)
+	err = vm2.ConsumeGas(gasCost)
+	if err != nil {
+		fmt.Printf("  Error: %v\n", err)
+	} else {
+		fmt.Printf("  Gas after STOP: %d\n", vm2.GetGas())
+	}
+	fmt.Println()
+
+	// Demo 2: Out of gas scenario
+	fmt.Println("2. Out of Gas Scenario:")
+	vm3 := types.NewVM(code, 1) // Very low gas limit
+	fmt.Printf("  Initial gas: %d\n", vm3.GetGas())
+	gasCost = types.GetOpcodeGasCost(types.PUSH1)
+	fmt.Printf("  Attempting to consume %d gas for PUSH1...\n", gasCost)
+	err = vm3.ConsumeGas(gasCost)
+	if err != nil {
+		fmt.Printf("  Error (expected): %v\n", err)
+	} else {
+		fmt.Printf("  Gas remaining: %d\n", vm3.GetGas())
+	}
+	fmt.Println()
+
+	// Demo 3: Gas costs for different opcodes
+	fmt.Println("3. Gas Costs for Different Opcodes:")
+	opcodes := []struct {
+		name   string
+		opcode byte
+	}{
+		{"STOP", types.STOP},
+		{"ADD", types.ADD},
+		{"MUL", types.MUL},
+		{"EXP", types.EXP},
+		{"PUSH1", types.PUSH1},
+		{"DUP1", types.DUP1},
+		{"SWAP1", types.SWAP1},
+	}
+	for _, op := range opcodes {
+		cost := types.GetOpcodeGasCost(op.opcode)
+		fmt.Printf("  %s: %d gas\n", op.name, cost)
+	}
+	fmt.Println()
+
+	// Demo 4: Memory expansion gas
+	fmt.Println("4. Memory Expansion Gas Calculation:")
+	oldSize := uint64(0)
+	newSize := uint64(64) // 64 bytes = 2 words
+	expansionGas := types.MemoryExpansionGas(oldSize, newSize)
+	fmt.Printf("  Expanding memory from %d to %d bytes\n", oldSize, newSize)
+	fmt.Printf("  Gas cost: %d\n", expansionGas)
+
+	oldSize = 32
+	newSize = 128 // 128 bytes = 4 words
+	expansionGas = types.MemoryExpansionGas(oldSize, newSize)
+	fmt.Printf("  Expanding memory from %d to %d bytes\n", oldSize, newSize)
+	fmt.Printf("  Gas cost: %d\n", expansionGas)
+	fmt.Println()
+
+	// Demo 5: Gas refund
+	fmt.Println("5. Gas Refund (capped at gasLimit/2):")
+	vm4 := types.NewVM(code, 10000)
+	vm4.ConsumeGas(3000) // Use 3000 gas
+	fmt.Printf("  Gas after consuming 3000: %d\n", vm4.GetGas())
+	vm4.RefundGas(1000) // Refund 1000
+	fmt.Printf("  Gas after refunding 1000: %d\n", vm4.GetGas())
+
+	// Show refund cap
+	vm5 := types.NewVM(code, 10000)
+	vm5.ConsumeGas(5000) // Use half the gas
+	fmt.Printf("  Gas after consuming 5000: %d\n", vm5.GetGas())
+	vm5.RefundGas(3000) // Try to refund 3000 (but cap is 5000, already at max)
+	fmt.Printf("  Gas after attempting to refund 3000 (capped): %d\n", vm5.GetGas())
+	fmt.Println()
+
+	// === Original Stack Operations Demo ===
 
 	// Create a new stack
 	stack := types.NewStack()
