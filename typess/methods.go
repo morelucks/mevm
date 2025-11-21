@@ -136,6 +136,15 @@ func MemoryExpansionGas(oldSize, newSize uint64) uint64 {
 	return quadCost + linearCost
 }
 
+// Execute runs the bytecode interpreter loop
+func (vm *VM) Execute() error {
+	for vm.HasMore() {
+		opcode := vm.Fetch()
+		_ = opcode // my TODO
+	}
+	return nil
+}
+
 // GetOpcodeGasCost returns the base gas cost for an opcode (Istanbul fork)
 // Note: Some opcodes have dynamic costs (EXP, SHA3, memory ops, etc.)
 // that need additional calculation
