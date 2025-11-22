@@ -29,6 +29,8 @@ func NewVM(code []byte, gasLimit uint64) *VM {
 		PC:       0,
 		Gas:      gasLimit,
 		GasLimit: gasLimit,
+		Stack:    NewStack(),
+		Memory:   NewMemory(),
 	}
 }
 
@@ -137,11 +139,118 @@ func MemoryExpansionGas(oldSize, newSize uint64) uint64 {
 }
 
 // Execute runs the bytecode interpreter loop
+// Implements the execution cycle from Yellow Paper Section 9
 func (vm *VM) Execute() error {
 	for vm.HasMore() {
+		// Fetch opcode at current PC
 		opcode := vm.Fetch()
-		_ = opcode // my TODO
+
+		// Get base gas cost for this opcode
+		gasCost := GetOpcodeGasCost(opcode)
+
+		// Consume gas (check for out of gas)
+		if err := vm.ConsumeGas(gasCost); err != nil {
+			return err // Out of gas
+		}
+
+		// Dispatch opcode
+		if err := vm.executeOpcode(opcode); err != nil {
+			return err // Execution error
+		}
 	}
+	return nil
+}
+
+// executeOpcode dispatches to the appropriate operation
+func (vm *VM) executeOpcode(opcode byte) error {
+	switch opcode {
+	case STOP:
+		// Halt execution successfully
+		vm.SetPC(uint64(len(vm.Code))) // Set PC to end to exit loop
+		return nil
+
+	case ADD:
+		vm.Stack.Add()
+	case SUB:
+		vm.Stack.Sub()
+	case MUL:
+		vm.Stack.Mul()
+	case DIV:
+		vm.Stack.Div()
+	case MOD:
+		vm.Stack.Mod()
+	case ADDMOD:
+		vm.Stack.AddMod()
+	case MULMOD:
+		vm.Stack.MulMod()
+	case EXP:
+		vm.Stack.Exp()
+		// TODO: Add dynamic gas cost for EXP (50 per byte)
+
+	case LT:
+		vm.Stack.Lt()
+	case GT:
+		vm.Stack.Gt()
+	case EQ:
+		vm.Stack.Eq()
+	case ISZERO:
+		vm.Stack.IsZero()
+
+	case AND:
+		vm.Stack.And()
+	case OR:
+		vm.Stack.Or()
+	case XOR:
+		vm.Stack.Xor()
+	case NOT:
+		vm.Stack.Not()
+	case BYTE:
+		vm.Stack.Byte()
+	case SHL:
+		vm.Stack.Shl()
+	case SHR:
+		vm.Stack.Shr()
+
+	case POP:
+		vm.Stack.Pop()
+
+	case PUSH1, PUSH2, PUSH3, PUSH4, PUSH5, PUSH6, PUSH7, PUSH8,
+		PUSH9, PUSH10, PUSH11, PUSH12, PUSH13, PUSH14, PUSH15, PUSH16,
+		PUSH17, PUSH18, PUSH19, PUSH20, PUSH21, PUSH22, PUSH23, PUSH24,
+		PUSH25, PUSH26, PUSH27, PUSH28, PUSH29, PUSH30, PUSH31, PUSH32:
+		// PUSH operations: read 1-32 immediate bytes
+		bytesToRead := int(opcode - PUSH1 + 1)
+		if !vm.HasMore() || vm.PC+uint64(bytesToRead) > uint64(len(vm.Code)) {
+			return fmt.Errorf("invalid PUSH: not enough bytes")
+		}
+
+		// Read immediate bytes
+		immediate := make([]byte, 32) // Always 32 bytes, left-padded
+		startIdx := 32 - bytesToRead
+		for i := 0; i < bytesToRead; i++ {
+			immediate[startIdx+i] = vm.Fetch()
+		}
+
+		// Push to stack
+		vm.Stack.Push(NewWordFromBytes(immediate))
+
+	case DUP1, DUP2, DUP3, DUP4, DUP5, DUP6, DUP7, DUP8,
+		DUP9, DUP10, DUP11, DUP12, DUP13, DUP14, DUP15, DUP16:
+		// DUP operations: duplicate stack item at position (opcode - DUP1)
+		index := int(opcode - DUP1)
+		vm.Stack.Dup(index)
+
+	case SWAP1, SWAP2, SWAP3, SWAP4, SWAP5, SWAP6, SWAP7, SWAP8,
+		SWAP9, SWAP10, SWAP11, SWAP12, SWAP13, SWAP14, SWAP15, SWAP16:
+		// SWAP operations: swap top with item at position (opcode - SWAP1)
+		index := int(opcode - SWAP1)
+		vm.Stack.Swap(index)
+
+	default:
+		// Unknown/invalid opcode
+		return fmt.Errorf("invalid opcode: 0x%02x", opcode)
+	}
+
 	return nil
 }
 

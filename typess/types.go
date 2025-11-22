@@ -25,12 +25,15 @@ type Storage struct {
 	Data map[Byte32]Byte32
 }
 
-// VM holds code, program counter (PC), and gas tracking
+// VM holds code, program counter (PC), gas tracking, stack, and memory
+// Implements machine state (μ) from Yellow Paper Section 9
 type VM struct {
 	Code     []byte
-	PC       uint64
-	Gas      uint64 // Remaining gas
-	GasLimit uint64 // Maximum gas allowed
+	PC       uint64  // μ_pc - Program counter
+	Gas      uint64  // μ_g - Remaining gas
+	GasLimit uint64  // Maximum gas allowed
+	Stack    *Stack  // μ_s - Stack contents
+	Memory   *Memory // μ_m - Memory contents
 }
 
 // EVM Opcodes
