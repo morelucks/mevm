@@ -131,6 +131,163 @@ func main() {
 	fmt.Printf("  Gas after attempting to refund 3000 (capped): %d\n", vm5.GetGas())
 	fmt.Println()
 
+	// === Bytecode Interpreter Execution Demo ===
+	fmt.Println("=== Bytecode Interpreter Execution Demo ===")
+	fmt.Println()
+
+	// Simple execution - PUSH1 42, STOP
+	fmt.Println("Simple Execution (PUSH1 42, STOP)")
+	code1 := []byte{types.PUSH1, 0x2a, types.STOP} // PUSH1 42, STOP
+	vm1 := types.NewVM(code1, 10000)
+	fmt.Printf("  Bytecode: %x\n", code1)
+	fmt.Printf("  Initial gas: %d\n", vm1.GetGas())
+	fmt.Printf("  Initial stack size: %d\n", vm1.Stack.Size())
+
+	err1 := vm1.Execute()
+	if err1 != nil {
+		fmt.Printf("  Error: %v\n", err1)
+	} else {
+		fmt.Printf("  Execution successful!\n")
+		fmt.Printf("  Remaining gas: %d\n", vm1.GetGas())
+		fmt.Printf("  Final stack size: %d\n", vm1.Stack.Size())
+		if vm1.Stack.Size() > 0 {
+			value := vm1.Stack.Peek()
+			fmt.Printf("  Stack top value: %d (0x%x)\n", value.ToBigInt().Uint64(), value)
+		}
+	}
+	fmt.Println()
+
+	// Arithmetic - PUSH1 5, PUSH1 10, ADD, STOP
+	fmt.Println("Arithmetic Operation (5 + 10)")
+	execCode2 := []byte{
+		types.PUSH1, 0x05, // PUSH1 5
+		types.PUSH1, 0x0a, // PUSH1 10
+		types.ADD,  // ADD
+		types.STOP, // STOP
+	}
+	execVm2 := types.NewVM(execCode2, 10000)
+	fmt.Printf("  Bytecode: %x\n", execCode2)
+	fmt.Printf("  Initial gas: %d\n", execVm2.GetGas())
+
+	err2 := execVm2.Execute()
+	if err2 != nil {
+		fmt.Printf("  Error: %v\n", err2)
+	} else {
+		fmt.Printf("  Execution successful!\n")
+		fmt.Printf("  Remaining gas: %d\n", execVm2.GetGas())
+		if execVm2.Stack.Size() > 0 {
+			value := execVm2.Stack.Peek()
+			result := value.ToBigInt().Uint64()
+			fmt.Printf("  Result: %d (expected: 15)\n", result)
+			if result == 15 {
+				fmt.Printf("   Correct result!\n")
+			}
+		}
+	}
+	fmt.Println()
+
+	//  Multiple operations - PUSH1 2, PUSH1 8, MUL, PUSH1 4, ADD, STOP
+	fmt.Println("Multiple Operations ((2 * 8) + 4)")
+	execCode3 := []byte{
+		types.PUSH1, 0x02, // PUSH1 2
+		types.PUSH1, 0x08, // PUSH1 8
+		types.MUL,         // MUL (2 * 8 = 16)
+		types.PUSH1, 0x04, // PUSH1 4
+		types.ADD,  // ADD (16 + 4 = 20)
+		types.STOP, // STOP
+	}
+	execVm3 := types.NewVM(execCode3, 10000)
+	fmt.Printf("  Bytecode: %x\n", execCode3)
+	fmt.Printf("  Initial gas: %d\n", execVm3.GetGas())
+
+	err3 := execVm3.Execute()
+	if err3 != nil {
+		fmt.Printf("  Error: %v\n", err3)
+	} else {
+		fmt.Printf("  Execution successful!\n")
+		fmt.Printf("  Remaining gas: %d\n", execVm3.GetGas())
+		if execVm3.Stack.Size() > 0 {
+			value := execVm3.Stack.Peek()
+			result := value.ToBigInt().Uint64()
+			fmt.Printf("  Result: %d (expected: 20)\n", result)
+			if result == 20 {
+				fmt.Printf("  Correct result!\n")
+			}
+		}
+	}
+	fmt.Println()
+
+	//  Stack operations - PUSH1 1, PUSH1 2, DUP1, SWAP1, STOP
+	fmt.Println("Stack Operations (PUSH, DUP, SWAP)")
+	execCode4 := []byte{
+		types.PUSH1, 0x01, // PUSH1 1
+		types.PUSH1, 0x02, // PUSH1 2
+		types.DUP1,  // DUP1 (duplicate top: 2)
+		types.SWAP1, // SWAP1 (swap top two)
+		types.STOP,  // STOP
+	}
+	execVm4 := types.NewVM(execCode4, 10000)
+	fmt.Printf("  Bytecode: %x\n", execCode4)
+	fmt.Printf("  Initial gas: %d\n", execVm4.GetGas())
+
+	err4 := execVm4.Execute()
+	if err4 != nil {
+		fmt.Printf("  Error: %v\n", err4)
+	} else {
+		fmt.Printf("  Execution successful!\n")
+		fmt.Printf("  Remaining gas: %d\n", execVm4.GetGas())
+		fmt.Printf("  Final stack size: %d\n", execVm4.Stack.Size())
+		fmt.Println("  Stack contents (top to bottom):")
+		for i := execVm4.Stack.Size() - 1; i >= 0; i-- {
+			value := execVm4.Stack.PeekAt(execVm4.Stack.Size() - 1 - i)
+			fmt.Printf("    [%d]: %d (0x%x)\n", execVm4.Stack.Size()-1-i, value.ToBigInt().Uint64(), value)
+		}
+	}
+	fmt.Println()
+
+	//  Comparison - PUSH1 5, PUSH1 10, LT, STOP
+	fmt.Println("Comparison Operation (5 < 10)")
+	execCode5 := []byte{
+		types.PUSH1, 0x05, // PUSH1 5
+		types.PUSH1, 0x0a, // PUSH1 10
+		types.LT,   // LT (5 < 10)
+		types.STOP, // STOP
+	}
+	execVm5 := types.NewVM(execCode5, 10000)
+	fmt.Printf("  Bytecode: %x\n", execCode5)
+
+	err5 := execVm5.Execute()
+	if err5 != nil {
+		fmt.Printf("Error: %v\n", err5)
+	} else {
+		fmt.Printf("Execution successful!\n")
+		if execVm5.Stack.Size() > 0 {
+			value := execVm5.Stack.Peek()
+			result := value.ToBigInt().Uint64()
+			fmt.Printf("  Result: %d (1 = true, 0 = false)\n", result)
+			if result == 1 {
+				fmt.Printf("Correct: 5 < 10 is true\n")
+			}
+		}
+	}
+	fmt.Println()
+
+	//  Out of gas scenario
+	fmt.Println("out of Gas Scenario")
+	execCode6 := []byte{types.PUSH1, 0x01, types.PUSH1, 0x02, types.ADD, types.STOP}
+	execVm6 := types.NewVM(execCode6, 1) // Very low gas limit
+	fmt.Printf("  Bytecode: %x\n", execCode6)
+	fmt.Printf("  Gas limit: %d (very low)\n", execVm6.GetGasLimit())
+
+	err6 := execVm6.Execute()
+	if err6 != nil {
+		fmt.Printf("  Error (expected): %v\n", err6)
+		fmt.Printf("  Out of gas handled correctly\n")
+	} else {
+		fmt.Printf("  Execution completed (unexpected with low gas)\n")
+	}
+	fmt.Println()
+
 	// === Original Stack Operations Demo ===
 
 	// Create a new stack
