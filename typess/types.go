@@ -29,11 +29,12 @@ type Storage struct {
 // Implements machine state (μ) from Yellow Paper Section 9
 type VM struct {
 	Code     []byte
-	PC       uint64  // μ_pc - Program counter
-	Gas      uint64  // μ_g - Remaining gas
-	GasLimit uint64  // Maximum gas allowed
-	Stack    *Stack  // μ_s - Stack contents
-	Memory   *Memory // μ_m - Memory contents
+	PC       uint64   // μ_pc - Program counter
+	Gas      uint64   // μ_g - Remaining gas
+	GasLimit uint64   // Maximum gas allowed
+	Stack    *Stack   // μ_s - Stack contents
+	Memory   *Memory  // μ_m - Memory contents
+	Storage  *Storage // μ_s - Storage contents
 }
 
 // EVM Opcodes

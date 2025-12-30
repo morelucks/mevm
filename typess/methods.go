@@ -31,6 +31,7 @@ func NewVM(code []byte, gasLimit uint64) *VM {
 		GasLimit: gasLimit,
 		Stack:    NewStack(),
 		Memory:   NewMemory(),
+		Storage:  NewStorage(),
 	}
 }
 
@@ -712,4 +713,15 @@ func (s *Stack) Print() {
 	for i := len(s.Data) - 1; i >= 0; i-- {
 		fmt.Printf("  [%d]: %x\n", len(s.Data)-1-i, s.Data[i])
 	}
+}
+
+// IsHalted returns true if the VM has finished execution
+func (vm *VM) IsHalted() bool {
+	return vm.PC >= uint64(len(vm.Code))
+}
+
+// GetState returns a summary of the current VM state
+func (vm *VM) GetState() string {
+	return fmt.Sprintf("PC: %d, Gas: %d/%d, Stack: %d, Memory: %d words",
+		vm.PC, vm.Gas, vm.GasLimit, vm.Stack.Size(), len(vm.Memory.Data))
 }
