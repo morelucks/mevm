@@ -457,4 +457,26 @@ func main() {
 	stack.Push(types.NewWord(5))
 	stack.MulMod()
 	stack.Print()
+
+	
+	// Test Storage functionality
+	fmt.Println("1. Storage Operations:")
+	vmStorage := types.NewVM([]byte{types.PUSH1, 0x42, types.STOP}, 10000)
+	key := types.NewWord(1)
+	value := types.NewWord(100)
+	vmStorage.Storage.Store(key, value)
+	loaded := vmStorage.Storage.Load(key)
+	fmt.Printf("  Stored value %d at key %d\n", value.ToBigInt().Uint64(), key.ToBigInt().Uint64())
+	fmt.Printf("  Loaded value: %d\n", loaded.ToBigInt().Uint64())
+
+	// Test IsHalted() and GetState()
+	fmt.Println("\n2. VM State Helpers:")
+	testVM := types.NewVM([]byte{types.PUSH1, 0x05, types.STOP}, 5000)
+	fmt.Printf("  Initial state: %s\n", testVM.GetState())
+	fmt.Printf("  Is halted? %v\n", testVM.IsHalted())
+
+	// Execute and check state
+	testVM.Execute()
+	fmt.Printf("  After execution: %s\n", testVM.GetState())
+	fmt.Printf("  Is halted? %v\n", testVM.IsHalted())
 }
